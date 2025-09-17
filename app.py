@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from openai import OpenAI
+import os
 import re
 import jieba
 import jieba.analyse
