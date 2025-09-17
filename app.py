@@ -144,29 +144,39 @@ def retrieve_relevant_context(question: str, top_k=5):
 def chat():
     data = request.get_json()
     question = data.get("message", "")
-    if not uploaded_files:
-        return jsonify({"reply": "No files uploaded yet. Please upload a document first."})
 
-    context_prompt = retrieve_relevant_context(question)
-    system_instruction = f"""
-    你是一个专业的文档问答助手，以下是用户的问题以及从文档中检索到的相关内容。  
-    请基于提供的内容尽量回答问题，如果信息不足，可以结合上下文合理推测，但不要凭空编造事实。
+    # 判断是否有上传文件
+    if uploaded_files:
+        # 使用文档内容回答
+        context_prompt = retrieve_relevant_context(question)
+        system_instruction = f"""
+你是一个专业的文档问答助手，以下是用户的问题以及从文档中检索到的相关内容。  
+请基于提供的内容尽量回答问题，如果信息不足，可以结合上下文合理推测，但不要凭空编造事实。
 
-    用户问题：
-    {question}
+用户问题：
+{question}
 
-    检索到的相关内容：
-    {context_prompt}
+检索到的相关内容：
+{context_prompt}
 
-    要求：
-    1. 回答使用简洁、清晰的中文，使用Markdown格式。
-    2. 尽量引用文档中的信息，不要随意生成无关内容。
-    3. 当信息不足时，可以根据上下文合理推测，但要明确说明这是推测。
-    4. 保持条理清晰，可使用列表或段落分隔。
+要求：
+1. 回答使用简洁、清晰的中文，使用Markdown格式。
+2. 尽量引用文档中的信息，不要随意生成无关内容。
+3. 当信息不足时，可以根据上下文合理推测，但要明确说明这是推测。
+4. 保持条理清晰，可使用列表或段落分隔。
 
-    请开始回答：
-    """
+请开始回答：
+"""
+    else:
+        # 闲聊模式：直接回答
+        system_instruction = f"""
+你是一个友好的聊天助手，请回答用户提出的问题：
 
+用户问题：
+{question}
+
+请使用简洁、清晰的中文回答，保持自然交流风格。
+"""
 
     try:
         completion = client.chat.completions.create(
@@ -178,6 +188,7 @@ def chat():
         answer = f"Error: {str(e)}"
 
     return jsonify({"reply": answer})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
