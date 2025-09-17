@@ -9,7 +9,7 @@ app = Flask(__name__, template_folder="./templates")
 
 
 # ===== 上传目录 =====
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = "/tmp/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ===== 内存存储 =====
