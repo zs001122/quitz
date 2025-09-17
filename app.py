@@ -29,7 +29,14 @@ def index():
 # ===== 上传文件 =====
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    global uploaded_files, file_paragraphs, file_data, file_contents
+    global uploaded_files, file_paragraphs, file_data, file_contents, indexed_files
+
+    # 清空上一次的文件数据
+    uploaded_files.clear()
+    file_paragraphs.clear()
+    file_data.clear()
+    file_contents.clear()
+    indexed_files.clear()
 
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -52,8 +59,7 @@ def upload_file():
         "status": "Pending"
     }
 
-    if file.filename not in uploaded_files:
-        uploaded_files.append(file.filename)
+    uploaded_files.append(file.filename)
 
     total_chars = sum(fd["chars"] for fd in file_data.values())
     return jsonify({
@@ -142,7 +148,25 @@ def chat():
         return jsonify({"reply": "No files uploaded yet. Please upload a document first."})
 
     context_prompt = retrieve_relevant_context(question)
-    system_instruction = f"用户问题: {question}\n\n检索到的相关内容:\n{context_prompt}\n\n原文:{file_paragraphs}请基于上述内容回答问题，使用markdown格式输出。"
+    system_instruction = f"""
+    你是一个专业的文档问答助手，以下是用户的问题以及从文档中检索到的相关内容。  
+    请基于提供的内容尽量回答问题，如果信息不足，可以结合上下文合理推测，但不要凭空编造事实。
+
+    用户问题：
+    {question}
+
+    检索到的相关内容：
+    {context_prompt}
+
+    要求：
+    1. 回答使用简洁、清晰的中文，使用Markdown格式。
+    2. 尽量引用文档中的信息，不要随意生成无关内容。
+    3. 当信息不足时，可以根据上下文合理推测，但要明确说明这是推测。
+    4. 保持条理清晰，可使用列表或段落分隔。
+
+    请开始回答：
+    """
+
 
     try:
         completion = client.chat.completions.create(
