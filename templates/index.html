@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+<head>
+    <meta charset="UTF-8">
+    <title>NoCodeChatGPT</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 300px;
+            background: var(--bg-white);
+            border-right: 1px solid var(--border-light);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-sm);
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* 拖放区域样式 */
+        .dropzone {
+            border: 2px dashed var(--border-light);
+            border-radius: 0.5rem;
+            text-align: center;
+            padding: 2rem 1rem;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+            background-color: var(--bg-light);
+        }
+
+        .dropzone:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(99, 102, 241, 0.03);
+        }
+
+        .dropzone i {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+        }
+
+        .dropzone p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .select-files-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .select-files-btn:hover {
+            background-color: #4f46e5;
+        }
+
+        /* 统计数据样式 */
+        .stats {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat {
+            flex: 1;
+            background: var(--bg-white);
+            border: 1px solid var(--border-light);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* 文件列表样式 */
+        .file-list-container {
+            margin-bottom: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-list-header {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            color: var(--text-dark);
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 0.875rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-light);
+            padding: 0.5rem;
+            background-color: var(--bg-white);
+        }
+
+        .file-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .file-list::-webkit-scrollbar-thumb {
+            background-color: var(--border-light);
+            border-radius: 2px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--bg-light);
+        }
+
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-name i {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .file-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .indexed {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* 索引按钮样式 */
+        .index-btn {
+            padding: 0.75rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .index-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .index-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* RAG就绪状态 */
+        .rag-status {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            padding: 0.5rem;
+            text-align: center;
+            border-radius: 0.375rem;
+            background-color: var(--bg-light);
+        }
+
+        /* 聊天容器样式 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-light);
+            overflow: hidden;
+        }
+
+        /* 聊天头部样式 */
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-light);
+            background-color: var(--bg-white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chat-title {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chat-title h1 i {
+            color: var(--primary-color);
+        }
+
+        .chat-title p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .student-info {
+            background-color: var(--bg-light);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-light);
+            font-size: 0.875rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .student-info p {
+            margin-bottom: 0.25rem;
+            color: var(--text-dark);
+        }
+
+        /* 聊天窗口样式 */
+        .chat-window {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-window::-webkit-scrollbar-thumb {
+            background-color: var(--border-light);
+            border-radius: 3px;
+        }
+
+        .welcome-message {
+            max-width: 600px;
+            background-color: var(--bg-white);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            align-self: flex-start;
+        }
+
+        .welcome-message h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .welcome-message p {
+            font-size: 0.9375rem;
+            color: var(--text-muted);
+        }
+
+        .message {
+            max-width: 600px;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+            white-space: pre-wrap; /* 保留代码格式的换行 */
+        }
+
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .ai-message {
+            background-color: var(--bg-white);
+            color: var(--text-dark);
+            align-self: flex-start;
+            border: 1px solid var(--border-light);
+            border-bottom-left-radius: 0.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* 代码块样式 - 解决背景问题 */
+        .ai-message pre {
+            background-color: #f1f5f9;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+
+        .ai-message code {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+        }
+
+        .ai-message h1, 
+        .ai-message h2, 
+        .ai-message h3 {
+            margin: 1rem 0 0.5rem 0;
+            color: var(--text-dark);
+        }
+
+        .ai-message p {
+            margin-bottom: 0.75rem;
+        }
+
+        /* 聊天输入样式 */
+        .chat-input-container {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border-light);
+            background-color: var(--bg-white);
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--border-light);
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .chat-input button {
+            padding: 0 1.5rem;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chat-input button:hover {
+            background-color: #4f46e5;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 50vh;
+            }
+
+            .chat-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .chat-window {
+                padding: 1rem;
+            }
+
+            .chat-input-container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>RAG Documents</h2>
+            <p>Upload text files and PDFs to enable RAG functionality</p>
+        </div>
+        
+        <div id="dropzone" class="dropzone">
+            <i class="fa fa-cloud-upload"></i>
+            <p>Drag & drop .txt and .pdf files here<br>or click to browse</p>
+            <button class="select-files-btn">Select Files</button>
+            <input type="file" id="fileInput" hidden multiple accept=".txt,.pdf">
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-title">Total Files</div>
+                <div class="stat-value" id="fileCount">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Total Chars</div>
+                <div class="stat-value" id="charCount">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Indexed Files</div>
+                <div class="stat-value" id="indexedCount">0</div>
+            </div>
+        </div>
+        
+        <div class="file-list-container">
+            <div class="file-list-header">Uploaded Files</div>
+            <div class="file-list" id="fileList">No files uploaded yet</div>
+        </div>
+        
+        <button class="index-btn" id="indexBtn" onclick="indexFiles()">
+            <i class="fa fa-database"></i> Index Files for RAG
+        </button>
+        
+        <div class="rag-status">
+            Ready for RAG: <span id="readyForRag">0</span> / <span id="totalFilesToIndex">0</span>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-title">
+                <h1><i class="fa fa-comments-o"></i> NoCodeChatGPT</h1>
+                <p>Start a conversation with Google Gemini AI<br>Upload text files to enable RAG functionality</p>
+            </div>
+            <div class="student-info">
+                <p>学生番号: 22M25201</p>
+                <p>名前: LOU SHUAICHI</p>
+            </div>
+        </div>
+        
+        <div class="chat-window" id="chatWindow">
+            <div class="welcome-message">
+                <h2>Welcome to NoCodeChatGPT</h2>
+                <p>Start a conversation with Google Gemini AI<br>Upload text files to enable RAG functionality</p>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-input">
+                <input type="text" id="userInput" placeholder="Type your message...">
+                <button onclick="sendMessage()">
+                    <i class="fa fa-paper-plane"></i> Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const fileCount = document.getElementById('fileCount');
+    const charCount = document.getElementById('charCount');
+    const indexedCount = document.getElementById('indexedCount');
+    const chatWindow = document.getElementById('chatWindow');
+    const indexBtn = document.getElementById('indexBtn');
+    const readyForRag = document.getElementById('readyForRag');
+    const totalFilesToIndex = document.getElementById('totalFilesToIndex');
+    const selectFilesBtn = document.querySelector('.select-files-btn');
+
+    // 存储上传文件（含状态和大小）
+    let uploadedFiles = [];
+
+    // 事件监听
+    dropzone.addEventListener('click', (e) => {
+        if (e.target !== selectFilesBtn) {
+            fileInput.click();
+        }
+    });
+    
+    selectFilesBtn.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--primary-color)';
+        dropzone.style.backgroundColor = 'rgba(99, 102, 241, 0.05)';
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.style.borderColor = 'var(--border-light)';
+        dropzone.style.backgroundColor = 'var(--bg-light)';
+    });
+
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--border-light)';
+        dropzone.style.backgroundColor = 'var(--bg-light)';
+        uploadFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', e => uploadFiles(e.target.files));
+
+    // 上传文件处理
+    async function uploadFiles(files) {
+        // 添加加载动画
+        fileList.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fa fa-spinner fa-spin"></i> Uploading files...</div>';
+        
+        for (const file of files) {
+            // 只处理txt和pdf文件
+            if (!file.name.endsWith('.txt') && !file.name.endsWith('.pdf')) {
+                continue;
+            }
+            
+            const formData = new FormData();
+            formData.append("file", file);
+            
+            try {
+                let res = await fetch("/api/upload", { method: "POST", body: formData });
+                let data = await res.json();
+                
+                // 记录文件信息（包含大小）
+                const fileSize = formatFileSize(file.size);
+                uploadedFiles = data.files.map(f => {
+                    // 找到当前文件
+                    if (f === file.name) {
+                        return { name: f, status: 'Pending', size: fileSize };
+                    }
+                    // 保留已存在文件的信息
+                    const existing = uploadedFiles.find(uf => uf.name === f);
+                    return existing ? existing : { name: f, status: 'Pending', size: 'Unknown' };
+                });
+                
+                updateStats(data);
+                renderFileList();
+            } catch (error) {
+                console.error('Upload error:', error);
+                fileList.innerHTML = '<div style="color: #dc2626; padding: 1rem; text-align: center;">Error uploading files</div>';
+            }
+        }
+    }
+
+    // 更新统计数据
+    function updateStats(data) {
+        // 添加数字变化动画
+        animateValue(fileCount, parseInt(fileCount.textContent), data.total_files, 500);
+        animateValue(charCount, parseInt(charCount.textContent), data.total_chars, 500);
+        animateValue(indexedCount, parseInt(indexedCount.textContent), data.indexed_files, 500);
+        
+        totalFilesToIndex.textContent = data.total_files;
+        readyForRag.textContent = data.indexed_files;
+        
+        // 控制索引按钮状态
+        indexBtn.disabled = data.total_files === 0 || data.indexed_files === data.total_files;
+        
+        // 更新文件状态
+        uploadedFiles.forEach(file => {
+            if (data.indexed_files === data.total_files) {
+                file.status = 'Indexed';
+            }
+        });
+        renderFileList();
+    }
+
+    // 渲染文件列表
+    function renderFileList() {
+        if (uploadedFiles.length === 0) {
+            fileList.innerHTML = '<div style="padding: 1rem; color: var(--text-muted); text-align: center;">No files uploaded yet</div>';
+            return;
+        }
+        
+        fileList.innerHTML = '';
+        uploadedFiles.forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            
+            // 根据文件类型选择图标
+            const fileIcon = file.name.endsWith('.pdf') ? 'fa-file-pdf-o' : 'fa-file-text-o';
+            
+            fileItem.innerHTML = `
+                <div>
+                    <div class="file-name">
+                        <i class="fa ${fileIcon}"></i>
+                        <span>${file.name}</span>
+                    </div>
+                    <div class="file-size">${file.size}</div>
+                </div>
+                <span class="file-status ${file.status.toLowerCase()}">${file.status}</span>
+            `;
+            
+            fileList.appendChild(fileItem);
+        });
+    }
+
+    // 索引文件 - 修复接口绑定问题
+    async function indexFiles() {
+        if (uploadedFiles.length === 0) return;
+        
+        // 显示加载状态
+        indexBtn.disabled = true;
+        indexBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Indexing...';
+        
+        try {
+            // 调用索引接口
+            let res = await fetch("/api/index", { method: "POST" });
+            let data = await res.json();
+            
+            // 验证接口返回
+            if (data.status === "success") {
+                // 更新文件状态为已索引
+                uploadedFiles = uploadedFiles.map(f => ({ ...f, status: 'Indexed' }));
+                updateStats(data);
+                addSystemMessage('Files have been successfully indexed for RAG functionality.');
+            } else {
+                throw new Error(data.message || 'Indexing failed');
+            }
+        } catch (error) {
+            console.error('Indexing error:', error);
+            addSystemMessage(`Error indexing files: ${error.message}`);
+        } finally {
+            // 恢复按钮状态
+            indexBtn.innerHTML = '<i class="fa fa-database"></i> Index Files for RAG';
+            indexBtn.disabled = uploadedFiles.length > 0 && uploadedFiles.every(f => f.status === 'Indexed');
+        }
+    }
+
+    // 发送消息
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        
+        // 添加用户消息到聊天窗口
+        addMessage(msg, 'user');
+        input.value = "";
+        input.focus();
+        
+        try {
+            // 显示加载中
+            const loadingDiv = addLoadingIndicator();
+            
+            let res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: msg })
+            });
+            
+            // 移除加载指示器
+            loadingDiv.remove();
+            
+            let data = await res.json();
+            const reply = data.reply;
+            
+            // 添加AI回复
+            addMessage(reply, 'ai');
+        } catch (error) {
+            console.error('Chat error:', error);
+            addMessage('Error connecting to AI service. Please try again.', 'ai');
+        }
+    }
+
+    // 添加消息到聊天窗口
+    function addMessage(content, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+        
+        if (sender === 'user') {
+            messageDiv.textContent = content;
+        } else {
+            // 渲染Markdown，修复代码块样式
+            messageDiv.innerHTML = marked.parse(content);
+        }
+        
+        chatWindow.appendChild(messageDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // 添加系统消息
+    function addSystemMessage(content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai-message';
+        messageDiv.style.backgroundColor = 'rgba(99, 102, 241, 0.05)';
+        messageDiv.innerHTML = `<i class="fa fa-info-circle" style="color: var(--primary-color); margin-right: 0.5rem;"></i>${content}`;
+        
+        chatWindow.appendChild(messageDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // 添加加载指示器
+    function addLoadingIndicator() {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message ai-message';
+        loadingDiv.innerHTML = '<div style="display: flex; align-items: center; gap: 0.5rem;"><i class="fa fa-spinner fa-spin"></i><span>Thinking...</span></div>';
+        
+        chatWindow.appendChild(loadingDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        
+        return loadingDiv;
+    }
+
+    // 数字动画效果
+    function animateValue(element, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const value = Math.floor(progress * (end - start) + start);
+            element.textContent = value.toLocaleString(); // 添加千位分隔符
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // 格式化文件大小
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // 按Enter发送消息
+    document.getElementById('userInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+</body>
+</html>
