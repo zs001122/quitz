@@ -1,28 +1,24 @@
 from flask import Flask, request, jsonify, render_template
 from openai import OpenAI
-import os
 import re
 import jieba
 import jieba.analyse
 
 app = Flask(__name__, template_folder="./templates")
 
-
-# ===== 上传目录 =====
-UPLOAD_DIR = "/tmp/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 # ===== 内存存储 =====
-uploaded_files = []
-file_paragraphs = {}
-file_data = {}
+uploaded_files = []        # 文件名列表
+file_paragraphs = {}       # {filename: [段落列表]}
+file_data = {}             # 文件元数据 {filename: {chars, size, status}}
 indexed_files = set()
+file_contents = {}         # {filename: bytes} 直接存文件内容
 
 # ===== OpenAI 客户端 =====
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY", "sk-fac374c7b5d74366a9765404d305b87c"),
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
+
 
 # ===== 首页 =====
 @app.route("/")
@@ -32,18 +28,16 @@ def index():
 # ===== 上传文件 =====
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    global uploaded_files, file_paragraphs, file_data
+    global uploaded_files, file_paragraphs, file_data, file_contents
+
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
     file = request.files["file"]
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
-    # 保存文件
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
     content = file.read()
-    with open(file_path, "wb") as f:
-        f.write(content)
+    file_contents[file.filename] = content
 
     # 处理文本
     text = content.decode(errors="ignore")
@@ -85,6 +79,7 @@ def index_files():
             if filename not in indexed_files:
                 indexed_files.add(filename)
                 file_data[filename]["status"] = "Indexed"
+
         total_chars = sum(fd["chars"] for fd in file_data.values())
         return jsonify({
             "status": "success",
@@ -104,7 +99,6 @@ def index_files():
 
 # ===== 简单检索函数 =====
 def retrieve_relevant_context(question: str, top_k=5):
-    """基于结巴分词的关键词匹配检索"""
     question_words = jieba.lcut(question)
     keywords = jieba.analyse.extract_tags(question, topK=10)
     if not keywords:
