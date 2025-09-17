@@ -614,7 +614,7 @@
             formData.append("file", file);
             
             try {
-                let res = await fetch("/api/upload", { method: "POST", body: formData });
+                let res = await fetch("/upload", { method: "POST", body: formData });
                 let data = await res.json();
                 
                 // 记录文件信息（包含大小）
@@ -700,7 +700,7 @@
         
         try {
             // 调用索引接口
-            let res = await fetch("/api/index", { method: "POST" });
+            let res = await fetch("/index", { method: "POST" });
             let data = await res.json();
             
             // 验证接口返回
@@ -737,7 +737,7 @@
             // 显示加载中
             const loadingDiv = addLoadingIndicator();
             
-            let res = await fetch("/api/chat", {
+            let res = await fetch("/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: msg })

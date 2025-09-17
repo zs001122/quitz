@@ -1,5 +1,5 @@
-fastapi
-mangum
-uvicorn
-jieba
-openai
+Flask==3.0
+requests==2.25.1
+gunicorn==21.2.0
+jieba ==0.42.1
+openai==1.66.5
